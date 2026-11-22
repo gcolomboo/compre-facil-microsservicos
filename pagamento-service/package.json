@@ -1,0 +1,8 @@
+{
+  "name": "comprefacil-pagamento",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {"start": "node src/index.js", "test": "node --test"},
+  "dependencies": {"amqplib": "^0.10.5", "express": "^4.21.2", "pg": "^8.13.1"},
+  "engines": {"node": ">=20"}
+}

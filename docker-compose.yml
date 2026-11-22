@@ -1,0 +1,63 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: compre
+      POSTGRES_PASSWORD: compre_dev
+      POSTGRES_DB: comprefacil
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U compre -d comprefacil"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: compre
+      RABBITMQ_DEFAULT_PASS: compre_dev
+    volumes:
+      - rabbit_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  pagamento:
+    build: ./pagamento-service
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgres://compre:compre_dev@postgres:5432/comprefacil
+      AMQP_URL: amqp://compre:compre_dev@rabbitmq:5672
+      PROCESS_DELAY_MS: 1500
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+  notificacao:
+    build: ./notificacao-service
+    environment:
+      PORT: 3001
+      DATABASE_URL: postgres://compre:compre_dev@postgres:5432/comprefacil
+      AMQP_URL: amqp://compre:compre_dev@rabbitmq:5672
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+volumes:
+  postgres_data:
+  rabbit_data:

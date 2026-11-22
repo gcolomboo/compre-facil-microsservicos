@@ -1,2 +1,145 @@
-# compre-facil-microsservicos
-compre-facil-microsservicos
+# CompreFácil — Desafio 2: Desenvolvimento de Sistemas Distribuídos
+
+Projeto acadêmico demonstrativo com **dois microsserviços Node.js independentes**, PostgreSQL, RabbitMQ (AMQP), REST e Docker Compose. Simula pagamentos: **não realiza cobranças reais** e **não envia e-mails reais**.
+
+## Requisitos
+
+- Docker Desktop ou Docker Engine + Docker Compose v2 (`docker compose`)
+- Para o teste automatizado fora do Docker: Node.js 20 ou superior
+
+## Executar
+
+Na pasta raiz:
+
+```bash
+docker compose up --build -d
+docker compose ps
+```
+
+A primeira inicialização pode demorar alguns minutos. Verifique `docker compose ps` e aguarde os serviços iniciarem.
+
+| Serviço | Endereço |
+|---|---|
+| Pagamentos REST | http://localhost:3000 |
+| Notificações REST | http://localhost:3001 |
+| RabbitMQ Management | http://localhost:15672 (usuário `compre`, senha `compre_dev`) |
+| PostgreSQL | localhost:5432 (usuário `compre`, senha `compre_dev`, banco `comprefacil`) |
+
+**Atenção:** portas e credenciais são exclusivamente para desenvolvimento local. Não exponha esse Compose à internet.
+
+## Fluxo assíncrono exigido
+
+1. `POST /pagamentos` valida os dados e grava no PostgreSQL com status `PENDENTE`.
+2. O pagamento registra o evento `pagamento.recebido` em uma tabela *outbox* e o publica no RabbitMQ.
+3. O microsserviço de notificações consome o evento e grava/exibe uma notificação simulada de recebimento.
+4. Um consumidor AMQP **do próprio serviço de pagamentos** recebe o trabalho de processamento, aguarda o evento inicial ser publicado e atualiza a transação para `SUCESSO`.
+5. O pagamento registra e publica o evento `pagamento.confirmado`.
+6. O serviço de notificações consome o evento e grava/exibe a notificação de confirmação.
+
+A API responde `202 Accepted` enquanto o processamento ocorre em segundo plano. O consumidor de notificações não chama a API de pagamentos. Ambos executam em processos e containers separados. A outbox reduz o risco de perda de eventos quando o broker fica temporariamente indisponível; mensagens podem ser repetidas, por isso notificações usam `evento_id` único para deduplicação.
+
+**Limitações didáticas:** o pagamento é sempre aprovado, não existe gateway financeiro real; a notificação é simulada em logs e no banco (não envia e-mail/SMS); não há autenticação, criptografia de dados pessoais em repouso ou infraestrutura de produção. A fila de processamento é enviada após o commit; uma interrupção exatamente entre o commit e a publicação pode deixar um pagamento pendente sem processamento automático. Para produção, o trabalho também deve usar outbox/recuperação, dead-letter queues e monitoramento.
+
+## Testar manualmente
+
+**Criar transação** (Postman: método POST, URL `http://localhost:3000/pagamentos`, Body → raw → JSON):
+
+```json
+{
+  "cliente": "Maria Silva",
+  "email": "maria@example.com",
+  "valor": 129.90
+}
+```
+
+Resposta esperada: HTTP `202` e objeto com `id` (UUID) e `status: "PENDENTE"`.
+
+**Consultar transação:** `GET http://localhost:3000/pagamentos/SEU_ID` (após alguns segundos, `SUCESSO`).
+
+**Consultar notificações:** `GET http://localhost:3001/notificacoes?pagamentoId=SEU_ID` (duas notificações: `pagamento.recebido` e `pagamento.confirmado`).
+
+**Outras rotas:**
+
+- `GET /pagamentos` — últimas 100 transações (porta 3000)
+- `GET /health` — saúde do serviço (ambas as portas)
+- `GET /notificacoes` — últimas 100 notificações (porta 3001)
+
+**Logs das notificações:**
+
+```bash
+docker compose logs -f notificacao
+```
+
+## Testes automatizados
+
+Com os containers ativos e Node.js 20+ instalado no computador:
+
+```bash
+node tests/integracao.mjs
+```
+
+Esse teste verifica saúde, validação de entrada, criação de pagamento, mudança de status e as **duas notificações** (aguarda até 30 segundos).
+
+Testes unitários de validação:
+
+```bash
+cd pagamento-service
+npm test
+```
+
+## Parar e limpar
+
+```bash
+docker compose down
+```
+
+Para apagar também **todos os dados de desenvolvimento**:
+
+```bash
+docker compose down -v
+```
+
+## Estrutura
+
+```text
+compre-facil/
+├── docker-compose.yml
+├── pagamento-service/
+│   ├── Dockerfile
+│   ├── package.json
+│   └── src/
+│       ├── index.js
+│       ├── validation.js
+│       └── validation.test.js
+├── notificacao-service/
+│   ├── Dockerfile
+│   ├── package.json
+│   └── src/index.js
+├── tests/integracao.mjs
+├── .env.example
+└── README.md
+```
+
+## Publicar no GitHub
+
+1. Crie um repositório **vazio** chamado `compre-facil` no GitHub.
+2. Na pasta raiz, execute (substitua `SEU_USUARIO`):
+
+```bash
+git init
+git add .
+git commit -m "Implementa microsserviços de pagamento e notificação"
+git branch -M main
+git remote add origin https://github.com/SEU_USUARIO/compre-facil.git
+git push -u origin main
+```
+
+3. Entregue no AVA a URL do repositório, que já conterá este README com as instruções de execução.
+
+## Critérios de avaliação
+
+- **Serviços independentes:** duas aplicações Node.js com containers, portas e responsabilidades próprias.
+- **Mensageria assíncrona:** RabbitMQ com filas duráveis, AMQP, exchange e eventos.
+- **Fluxo de pagamento:** PENDENTE → evento recebido → notificação → SUCESSO → evento confirmado → notificação.
+
+Projeto de demonstração desenvolvido para o desafio acadêmico da empresa fictícia CompreFácil.

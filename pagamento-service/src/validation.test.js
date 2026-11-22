@@ -1,0 +1,9 @@
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const { validarPagamento } = require('./validation');
+const valido = { cliente: 'Ana', email: 'ana@example.com', valor: 19.9 };
+test('aceita pagamento válido', () => assert.equal(validarPagamento(valido), null));
+test('rejeita valor negativo', () => assert.match(validarPagamento({ ...valido, valor: -1 }), /valor/));
+test('rejeita três casas decimais', () => assert.match(validarPagamento({ ...valido, valor: 1.234 }), /valor/));
+test('rejeita email inválido', () => assert.match(validarPagamento({ ...valido, email: 'invalido' }), /email/));
+test('rejeita cliente vazio', () => assert.match(validarPagamento({ ...valido, cliente: '' }), /cliente/));
