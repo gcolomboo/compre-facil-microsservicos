@@ -87,6 +87,16 @@ cd pagamento-service
 npm test
 ```
 
+## Evidências de execução e testes
+
+O projeto foi executado no GitHub Codespaces com Docker Compose. Na validação realizada em 22/11/2026:
+
+- `docker compose up --build -d`: imagens construídas; containers `pagamento` e `notificacao` em execução; PostgreSQL e RabbitMQ com status `healthy`.
+- `node tests/integracao.mjs`: **aprovado**. O teste criou um pagamento, verificou a transição `PENDENTE` → `SUCESSO` e confirmou o registro de duas notificações: `pagamento.recebido` e `pagamento.confirmado`.
+- `cd pagamento-service && npm test`: **5 testes aprovados, 0 falhas**, incluindo pagamento válido, valor negativo, três casas decimais, e-mail inválido e cliente vazio.
+
+Esses resultados são registros de uma execução de teste, não uma garantia de disponibilidade permanente dos serviços.
+
 ## Parar e limpar
 
 ```bash
