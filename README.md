@@ -120,21 +120,33 @@ compre-facil/
 └── README.md
 ```
 
-## Publicar no GitHub
+## Repositório e entrega
 
-1. Crie um repositório **vazio** chamado `compre-facil` no GitHub.
-2. Na pasta raiz, execute (substitua `SEU_USUARIO`):
+O projeto já está publicado no GitHub:
+
+**https://github.com/gcolomboo/compre-facil-microsservicos**
+
+Para trabalhar localmente com os arquivos publicados:
 
 ```bash
-git init
-git add .
-git commit -m "Implementa microsserviços de pagamento e notificação"
-git branch -M main
-git remote add origin https://github.com/SEU_USUARIO/compre-facil.git
-git push -u origin main
+git clone https://github.com/gcolomboo/compre-facil-microsservicos.git
+cd compre-facil-microsservicos
+docker compose up --build -d
+docker compose ps
+node tests/integracao.mjs
 ```
 
-3. Entregue no AVA a URL do repositório, que já conterá este README com as instruções de execução.
+**Importante:** execute o teste de integração somente depois de os quatro containers estarem prontos. O GitHub armazena o código, mas o teste com PostgreSQL e RabbitMQ precisa ser executado em um ambiente com Docker.
+
+Para enviar futuras alterações pelo terminal:
+
+```bash
+git add .
+git commit -m "Atualiza projeto CompreFacil"
+git push
+```
+
+Entregue no AVA o link do repositório acima.
 
 ## Critérios de avaliação
 
