@@ -1,0 +1,14 @@
+# Dependências locais
+node_modules/
+**/node_modules/
+
+# Variáveis privadas
+.env
+.env.*
+!.env.example
+
+# Logs e arquivos temporários
+*.log
+npm-debug.log*
+.DS_Store
+coverage/
