@@ -97,6 +97,12 @@ O projeto foi executado no GitHub Codespaces com Docker Compose. Na validação 
 
 Esses resultados são registros de uma execução de teste, não uma garantia de disponibilidade permanente dos serviços.
 
+### Captura de tela dos testes
+
+![Resultados dos testes de integração e unitários do CompreFácil](Imagem.png)
+
+A captura apresenta a confirmação do pagamento, as duas notificações e o resumo dos cinco testes unitários aprovados.
+
 ## Parar e limpar
 
 ```bash
